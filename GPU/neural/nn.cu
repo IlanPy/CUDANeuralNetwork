@@ -16,8 +16,8 @@ NeuralNetwork* network_create(int input, int hidden, int output, double lr) {
 	net->hidden = hidden;
 	net->output = output;
 	net->learning_rate = lr;
-	Matrix* hidden_layer = matrix_create(hidden, input);
-	Matrix* output_layer = matrix_create(output, hidden);
+	Matrix* hidden_layer = matrix_create_device(hidden, input);
+	Matrix* output_layer = matrix_create_device(output, hidden);
 	matrix_randomize(hidden_layer, hidden);
 	matrix_randomize(output_layer, output);
 	net->hidden_weights = hidden_layer;
