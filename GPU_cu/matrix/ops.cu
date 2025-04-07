@@ -12,9 +12,7 @@ Matrix* multiply(Matrix *m1, Matrix *m2) {
 		Matrix *m = matrix_create(m1->rows, m1->cols);
 		for (int i = 0; i < m1->rows; i++) {
 			for (int j = 0; j < m2->cols; j++) {
-				// m->entries[i][j] = m1->entries[i][j] * m2->entries[i][j];
-				m->entries[i * m->cols + j] = m1->entries[i * m1->cols + j]
-					* m2->entries[i * m2->cols + j];
+				m->entries[i][j] = m1->entries[i][j] * m2->entries[i][j];
 			}
 		}
 		return m;
@@ -29,9 +27,7 @@ Matrix* add(Matrix *m1, Matrix *m2) {
 		Matrix *m = matrix_create(m1->rows, m1->cols);
 		for (int i = 0; i < m1->rows; i++) {
 			for (int j = 0; j < m2->cols; j++) {
-				// m->entries[i][j] = m1->entries[i][j] + m2->entries[i][j];
-				m->entries[i * m->cols + j] = m1->entries[i * m1->cols + j]
-					+ m2->entries[i * m2->cols + j];
+				m->entries[i][j] = m1->entries[i][j] + m2->entries[i][j];
 			}
 		}
 		return m;
@@ -46,9 +42,7 @@ Matrix* subtract(Matrix *m1, Matrix *m2) {
 		Matrix *m = matrix_create(m1->rows, m1->cols);
 		for (int i = 0; i < m1->rows; i++) {
 			for (int j = 0; j < m2->cols; j++) {
-				// m->entries[i][j] = m1->entries[i][j] - m2->entries[i][j];
-				m->entries[i * m->cols + j] = m1->entries[i * m1->cols + j]
-					- m2->entries[i * m2->cols + j];
+				m->entries[i][j] = m1->entries[i][j] - m2->entries[i][j];
 			}
 		}
 		return m;
@@ -62,8 +56,7 @@ Matrix* apply(double (*func)(double), Matrix* m) {
 	Matrix *mat = matrix_copy(m);
 	for (int i = 0; i < m->rows; i++) {
 		for (int j = 0; j < m->cols; j++) {
-			// mat->entries[i][j] = (*func)(m->entries[i][j]);
-			mat->entries[i * mat->cols + j] = (*func)(m->entries[i * m->cols + j]);
+			mat->entries[i][j] = (*func)(m->entries[i][j]);
 		}
 	}
 	return mat;
@@ -76,12 +69,9 @@ Matrix* dot(Matrix *m1, Matrix *m2) {
 			for (int j = 0; j < m2->cols; j++) {
 				double sum = 0;
 				for (int k = 0; k < m2->rows; k++) {
-					// sum += m1->entries[i][k] * m2->entries[k][j];
-					sum += m1->entries[i * m1->cols + k] 
-						* m2->entries[k * m2->cols + j];
+					sum += m1->entries[i][k] * m2->entries[k][j];
 				}
-				// m->entries[i][j] = sum;
-				m->entries[i * m->cols + j] = sum;
+				m->entries[i][j] = sum;
 			}
 		}
 		return m;
@@ -95,8 +85,7 @@ Matrix* scale(double n, Matrix* m) {
 	Matrix* mat = matrix_copy(m);
 	for (int i = 0; i < m->rows; i++) {
 		for (int j = 0; j < m->cols; j++) {
-			// mat->entries[i][j] *= n;
-			mat->entries[i * mat->cols + j] *= n;
+			mat->entries[i][j] *= n;
 		}
 	}
 	return mat;
@@ -106,8 +95,7 @@ Matrix* addScalar(double n, Matrix* m) {
 	Matrix* mat = matrix_copy(m);
 	for (int i = 0; i < m->rows; i++) {
 		for (int j = 0; j < m->cols; j++) {
-			// mat->entries[i][j] += n;
-			mat->entries[i * mat->cols + j] += n;
+			mat->entries[i][j] += n;
 		}
 	}
 	return mat;
@@ -117,8 +105,7 @@ Matrix* transpose(Matrix* m) {
 	Matrix* mat = matrix_create(m->cols, m->rows);
 	for (int i = 0; i < m->rows; i++) {
 		for (int j = 0; j < m->cols; j++) {
-			// mat->entries[j][i] = m->entries[i][j];
-			mat->entries[j * mat->cols + i] = m->entries[i * m->cols + j];
+			mat->entries[j][i] = m->entries[i][j];
 		}
 	}
 	return mat;

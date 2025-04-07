@@ -2,7 +2,7 @@
 
 #include "matrix.h"
 
-Matrix* multiply(Matrix* m1, Matrix* m2);
+Matrix* multiply_gpu(Matrix* a_dev, Matrix* b_dev);
 Matrix* add(Matrix* m1, Matrix* m2);
 Matrix* subtract(Matrix* m1, Matrix* m2);
 Matrix* dot(Matrix* m1, Matrix* m2);

@@ -11,14 +11,13 @@
 
 // 784, 300, 10
 NeuralNetwork* network_create(int input, int hidden, int output, double lr) {
-	// NeuralNetwork* net = malloc(sizeof(NeuralNetwork));
-	NeuralNetwork* net = (NeuralNetwork*) malloc(sizeof(NeuralNetwork));
+	NeuralNetwork* net = malloc(sizeof(NeuralNetwork));
 	net->input = input;
 	net->hidden = hidden;
 	net->output = output;
 	net->learning_rate = lr;
-	Matrix* hidden_layer = matrix_create(hidden, input);
-	Matrix* output_layer = matrix_create(output, hidden);
+	Matrix* hidden_layer = matrix_create_device(hidden, input);
+	Matrix* output_layer = matrix_create_device(output, hidden);
 	matrix_randomize(hidden_layer, hidden);
 	matrix_randomize(output_layer, output);
 	net->hidden_weights = hidden_layer;
@@ -113,8 +112,7 @@ void network_train_batch_imgs(NeuralNetwork* net, Img** imgs, int batch_size) {
 		Img* cur_img = imgs[i];
 		Matrix* img_data = matrix_flatten(cur_img->img_data, 0); // 0 = flatten to column vector
 		Matrix* output = matrix_create(10, 1);
-		// output->entries[cur_img->label][0] = 1; // Setting the result
-		output->entries[cur_img->label] = 1;
+		output->entries[cur_img->label][0] = 1; // Setting the result
 		network_train(net, img_data, output);
 		matrix_free(output);
 		matrix_free(img_data);
@@ -171,8 +169,7 @@ void network_save(NeuralNetwork* net, char* file_string) {
 }
 
 NeuralNetwork* network_load(char* file_string) {
-	// NeuralNetwork* net = malloc(sizeof(NeuralNetwork));
-	NeuralNetwork* net = (NeuralNetwork*) malloc(sizeof(NeuralNetwork));
+	NeuralNetwork* net = malloc(sizeof(NeuralNetwork));
 	char entry[MAXCHAR];
 	chdir(file_string);
 

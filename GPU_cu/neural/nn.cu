@@ -113,8 +113,7 @@ void network_train_batch_imgs(NeuralNetwork* net, Img** imgs, int batch_size) {
 		Img* cur_img = imgs[i];
 		Matrix* img_data = matrix_flatten(cur_img->img_data, 0); // 0 = flatten to column vector
 		Matrix* output = matrix_create(10, 1);
-		// output->entries[cur_img->label][0] = 1; // Setting the result
-		output->entries[cur_img->label] = 1;
+		output->entries[cur_img->label][0] = 1; // Setting the result
 		network_train(net, img_data, output);
 		matrix_free(output);
 		matrix_free(img_data);
