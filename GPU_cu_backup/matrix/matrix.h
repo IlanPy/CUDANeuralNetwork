@@ -2,12 +2,11 @@
 
 typedef struct {
 	double** entries;
-	double* entriesf;
 	int rows;
 	int cols;
 } Matrix;
 
-void matrix_diff_self(Matrix* m, char* label);
+void matrix_diff(Matrix* a, Matrix* b, char* label);
 Matrix* matrix_create(int row, int col);
 void matrix_fill(Matrix *m, int n);
 void matrix_free(Matrix *m);

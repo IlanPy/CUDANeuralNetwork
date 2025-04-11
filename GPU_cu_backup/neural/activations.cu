@@ -19,19 +19,15 @@ Matrix* sigmoidPrime(Matrix* m) {
 
 Matrix* softmax(Matrix* m) {
 	double total = 0;
-	double totalf = 0;
 	for (int i = 0; i < m->rows; i++) {
 		for (int j = 0; j < m->cols; j++) {
 			total += exp(m->entries[i][j]);
-			totalf += exp(m->entriesf[i * m->cols + j]);
 		}
 	}
 	Matrix* mat = matrix_create(m->rows, m->cols);
 	for (int i = 0; i < mat->rows; i++) {
 		for (int j = 0; j < mat->cols; j++) {
 			mat->entries[i][j] = exp(m->entries[i][j]) / total;
-			mat->entriesf[i * mat->cols + j] = 
-				exp(m->entriesf[i * m->cols + j]) / totalf;
 		}
 	}
 	return mat;

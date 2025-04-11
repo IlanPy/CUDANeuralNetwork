@@ -5,26 +5,62 @@
 
 #define MAXCHAR 100
 
+void matrix_diff(Matrix* a, Matrix* b, char* label) {
+    if (a->rows != b->rows || a->cols != b->cols) {
+        printf("[DIFF] %s: shape mismatch (%d×%d) vs (%d×%d)\n", 
+               label, a->rows, a->cols, b->rows, b->cols);
+        return;
+    }
+
+    double max_diff = 0.0;
+    int idx_max = -1;
+
+    for (int i = 0; i < a->rows * a->cols; i++) {
+        double diff = fabs(a->entries[i] - b->entries[i]);
+        if (diff > max_diff) {
+            max_diff = diff;
+            idx_max = i;
+        }
+    }
+
+    if (max_diff < 1e-6) {
+        printf("[DIFF] %s: ✅ Matrices are effectively identical (max diff = %.10f)\n", 
+               label, max_diff);
+    } else {
+        printf("[DIFF] %s: ⚠️ Max diff = %.10f at flat index %d\n", 
+               label, max_diff, idx_max);
+        printf("        a[%d] = %.10f, b[%d] = %.10f\n", 
+               idx_max, a->entries[idx_max], idx_max, b->entries[idx_max]);
+    }
+}
+
 Matrix* matrix_create(int row, int col) {
 	//Matrix *matrix = malloc(sizeof(Matrix));
 	Matrix* matrix = (Matrix*) malloc(sizeof(Matrix));
 	matrix->rows = row;
 	matrix->cols = col;
 	// matrix->entries = malloc(row * sizeof(double*));
-	matrix->entries = (double*) malloc(row * col * sizeof(double));
+	matrix->entries = (double**) malloc(row * sizeof(double*));
+	for (int i = 0; i < row; i++) {
+		// matrix->entries[i] = malloc(col * sizeof(double));
+		matrix->entries[i] = (double*) malloc(col * sizeof(double));
+
+	}
 	return matrix;
 }
 
 void matrix_fill(Matrix *m, int n) {
 	for (int i = 0; i < m->rows; i++) {
 		for (int j = 0; j < m->cols; j++) {
-			// m->entries[i][j] = n;
-			m->entries[i * m->cols + j] = n;
+			m->entries[i][j] = n;
 		}
 	}
 }
 
 void matrix_free(Matrix *m) {
+	for (int i = 0; i < m->rows; i++) {
+		free(m->entries[i]);
+	}
 	free(m->entries);
 	free(m);
 	m = NULL;
@@ -34,7 +70,7 @@ void matrix_print(Matrix* m) {
 	printf("Rows: %d Columns: %d\n", m->rows, m->cols);
 	for (int i = 0; i < m->rows; i++) {
 		for (int j = 0; j < m->cols; j++) {
-			printf("%1.3f ", m->entries[i * m->cols + j]);
+			printf("%1.3f ", m->entries[i][j]);
 		}
 		printf("\n");
 	}
@@ -44,8 +80,7 @@ Matrix* matrix_copy(Matrix* m) {
 	Matrix* mat = matrix_create(m->rows, m->cols);
 	for (int i = 0; i < m->rows; i++) {
 		for (int j = 0; j < m->cols; j++) {
-			// mat->entries[i][j] = m->entries[i][j];
-			mat->entries[i * mat->cols + j] = m->entries[i * m->cols + j];
+			mat->entries[i][j] = m->entries[i][j];
 		}
 	}
 	return mat;
@@ -57,7 +92,7 @@ void matrix_save(Matrix* m, char* file_string) {
 	fprintf(file, "%d\n", m->cols);
 	for (int i = 0; i < m->rows; i++) {
 		for (int j = 0; j < m->cols; j++) {
-			fprintf(file, "%.6f\n", m->entries[i * m->cols + j]);
+			fprintf(file, "%.6f\n", m->entries[i][j]);
 		}
 	}
 	printf("Successfully saved matrix to %s\n", file_string);
@@ -75,7 +110,7 @@ Matrix* matrix_load(char* file_string) {
 	for (int i = 0; i < m->rows; i++) {
 		for (int j = 0; j < m->cols; j++) {
 			fgets(entry, MAXCHAR, file);
-			m->entries[i * m->cols + j] = strtod(entry, NULL);
+			m->entries[i][j] = strtod(entry, NULL);
 		}
 	}
 	printf("Sucessfully loaded matrix from %s\n", file_string);
@@ -98,38 +133,24 @@ void matrix_randomize(Matrix* m, int n) {
 	double max = 1.0 / sqrt(n);
 	for (int i = 0; i < m->rows; i++) {
 		for (int j = 0; j < m->cols; j++) {
-			m->entries[i * m->cols + j] = uniform_distribution(min, max);
+			m->entries[i][j] = uniform_distribution(min, max);
 		}
 	}
 }
-/*
+
 int matrix_argmax(Matrix* m) {
 	// Expects a Mx1 matrix
 	double max_score = 0;
 	int max_idx = 0;
 	for (int i = 0; i < m->rows; i++) {
-    		double val = m->entries[i * m->cols + 0];
-    		if (val > max_score) {
-        		max_score = val;
-        		max_idx = i;
-    		}
+		if (m->entries[i][0] > max_score) {
+			max_score = m->entries[i][0];
+			max_idx = i;
+		}
 	}
 	return max_idx;
 }
-*/
-int matrix_argmax(Matrix* m) {
-    double max_score = m->entries[0];
-    int max_idx = 0;
-    for (int i = 1; i < m->rows * m->cols; i++) {
-        if (m->entries[i] > max_score) {
-            max_score = m->entries[i];
-            max_idx = i;
-        }
-    }
-    return max_idx;
-}
 
-/*
 Matrix* matrix_flatten(Matrix* m, int axis) {
 	// Axis = 0 -> Column Vector, Axis = 1 -> Row Vector
 	Matrix* mat;
@@ -143,60 +164,9 @@ Matrix* matrix_flatten(Matrix* m, int axis) {
 	}
 	for (int i = 0; i < m->rows; i++) {
 		for (int j = 0; j < m->cols; j++) {
-			//if (axis == 0) mat->entries[i * m->cols + j][0] = m->entries[i][j];
-			if (axis == 0) mat->entries[i * m->cols + j] = m->entries[i * m->cols + j];
-			// else if (axis == 1) mat->entries[0][i * m->cols + j] = m->entries[i][j];
-			else if (axis == 0) mat->entries[0 * m->cols + i * m->cols + j] = m->entries[i * m->cols + j];
+			if (axis == 0) mat->entries[i * m->cols + j][0] = m->entries[i][j];
+			else if (axis == 1) mat->entries[0][i * m->cols + j] = m->entries[i][j];
 		}
 	}
 	return mat;
 }
-*/
-/*
-Matrix* matrix_flatten(Matrix* m, int axis) {
-    // Axis = 0 -> Column Vector (n x 1)
-    // Axis = 1 -> Row Vector (1 x n)
-    int total = m->rows * m->cols;
-    Matrix* mat;
-
-    if (axis == 0) {
-        mat = matrix_create(total, 1);
-    } else if (axis == 1) {
-        mat = matrix_create(1, total);
-    } else {
-        printf("Argument to matrix_flatten must be 0 or 1\n");
-        exit(EXIT_FAILURE);
-    }
-
-    for (int i = 0; i < total; i++) {
-        mat->entries[i] = m->entries[i]; // Copy entry-by-entry
-    }
-
-    return mat;
-}
-*/
-Matrix* matrix_flatten(Matrix* m, int axis) {
-    // Axis = 0 -> Column Vector (n x 1)
-    // Axis = 1 -> Row Vector (1 x n)
-    int total = m->rows * m->cols;
-    Matrix* mat;
-
-    if (axis == 0) {
-        mat = matrix_create(total, 1);
-    } else if (axis == 1) {
-        mat = matrix_create(1, total);
-    } else {
-        printf("Argument to matrix_flatten must be 0 or 1\n");
-        exit(EXIT_FAILURE);
-    }
-
-    for (int i = 0; i < m->rows; i++) {
-        for (int j = 0; j < m->cols; j++) {
-            int flat_index = i * m->cols + j;
-            mat->entries[flat_index] = m->entries[i * m->cols + j]; // Or access through get(m, i, j)
-        }
-    }
-
-    return mat;
-}
-
