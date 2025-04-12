@@ -106,7 +106,7 @@ void network_train(NeuralNetwork* net, Matrix* input, Matrix* output) {
 	added_mat = add(net->hidden_weights, scaled_mat);
 	matrix_free(net->hidden_weights); // Free the old hidden_weights before replacem/nt
 	net->hidden_weights = added_mat; 
-	matrix_diff_self(net->hidden_weights, "weights");
+//	matrix_diff_self(net->hidden_weights, "weights");
 
 	matrix_free(sigmoid_primed_mat);
 	matrix_free(multiplied_mat);
@@ -129,7 +129,7 @@ void network_train_batch_imgs(NeuralNetwork* net, Img** imgs, int batch_size) {
 		Img* cur_img = imgs[i];
 		Matrix* img_data = matrix_flatten(cur_img->img_data, 0); // 0 = flatten to column vector
 		Matrix* output = matrix_create(10, 1);
-		output->entries[cur_img->label][0] = 1; // Setting the result
+//		output->entries[cur_img->label][0] = 1; // Setting the result
 		output->entriesf[cur_img->label * output->cols] = 1;
 //		matrix_diff_self(output, "outputs");
 		network_train(net, img_data, output);

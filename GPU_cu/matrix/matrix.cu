@@ -5,7 +5,7 @@
 
 #define MAXCHAR 100
 
-void matrix_diff_self(Matrix* m, char* label) {
+/*void matrix_diff_self(Matrix* m, char* label) {
     double max_diff = 0.0;
     int max_i = -1;
     int max_j = -1;
@@ -34,13 +34,15 @@ void matrix_diff_self(Matrix* m, char* label) {
         printf("            entries[%d][%d] = %.10f, entriesf[%d] = %.10f\n",
                max_i, max_j, m->entries[max_i][max_j], flat_idx, m->entriesf[flat_idx]);
     }
-}
+}*/
 
 Matrix* matrix_create(int row, int col) {
 	//Matrix *matrix = malloc(sizeof(Matrix));
 	Matrix* matrix = (Matrix*) malloc(sizeof(Matrix));
 	matrix->rows = row;
 	matrix->cols = col;
+//	void* dummy = malloc(row * sizeof(double*));
+//	(void)dummy;
 	//matrix->entries = malloc(row * sizeof(double*));
 	matrix->entries = (double**) malloc(row * sizeof(double*));
 	for (int i = 0; i < row; i++) {
@@ -54,7 +56,7 @@ Matrix* matrix_create(int row, int col) {
 void matrix_fill(Matrix *m, int n) {
 	for (int i = 0; i < m->rows; i++) {
 		for (int j = 0; j < m->cols; j++) {
-			m->entries[i][j] = n;
+//			m->entries[i][j] = n;
 			m->entriesf[i * m->cols + j] = n; //1D
 		}
 	}
@@ -71,13 +73,13 @@ void matrix_free(Matrix *m) {
 }
 
 void matrix_print(Matrix* m) {
-	printf("Rows: %d Columns: %d\n", m->rows, m->cols);
-	for (int i = 0; i < m->rows; i++) {
-		for (int j = 0; j < m->cols; j++) {
-			printf("%1.3f ", m->entries[i][j]);
-		}
-		printf("\n");
-	}
+//	printf("Rows: %d Columns: %d\n", m->rows, m->cols);
+//	for (int i = 0; i < m->rows; i++) {
+//		for (int j = 0; j < m->cols; j++) {
+//			printf("%1.3f ", m->entries[i][j]);
+//		}
+//		printf("\n");
+//	}
 	printf("Rows: %d Columns: %d\n", m->rows, m->cols);
         for (int i = 0; i < m->rows; i++) {
                 for (int j = 0; j < m->cols; j++) {
@@ -91,12 +93,25 @@ Matrix* matrix_copy(Matrix* m) {
 	Matrix* mat = matrix_create(m->rows, m->cols);
 	for (int i = 0; i < m->rows; i++) {
 		for (int j = 0; j < m->cols; j++) {
-			mat->entries[i][j] = m->entries[i][j];
+//			mat->entries[i][j] = m->entries[i][j];
 			mat->entriesf[i * mat->cols + j] = m->entriesf[i * m->cols + j]; //1D
 		}
 	}
 	return mat;
 }
+/*
+Matrix* matrix_copy_2d(Matrix* m) {
+        Matrix* mat = matrix_create(m->rows, m->cols);
+        for (int i = 0; i < m->rows; i++) {
+                for (int j = 0; j < m->cols; j++) {
+//                      mat->entries[i][j] = m->entries[i][j];
+                        mat->entriesf[i * mat->cols + j] = m->entriesf[i * m->cols + j]; //1D
+			mat->entries[i][j] = m->entriesf[i * m->cols + j];
+                }
+        }
+        return mat;
+}
+*/
 
 void matrix_save(Matrix* m, char* file_string) {
 	FILE* file = fopen(file_string, "w");
@@ -122,7 +137,7 @@ Matrix* matrix_load(char* file_string) {
 	for (int i = 0; i < m->rows; i++) {
 		for (int j = 0; j < m->cols; j++) {
 			fgets(entry, MAXCHAR, file);
-			m->entries[i][j] = strtod(entry, NULL);
+//			m->entries[i][j] = strtod(entry, NULL);
 			m->entriesf[i * m->cols + j] = strtod(entry, NULL);
 		}
 	}
@@ -147,7 +162,7 @@ void matrix_randomize(Matrix* m, int n) {
 	for (int i = 0; i < m->rows; i++) {
 		for (int j = 0; j < m->cols; j++) {
 			double uni = uniform_distribution(min, max);
-			m->entries[i][j] = uni;
+//			m->entries[i][j] = uni;
 			m->entriesf[i * m->cols + j] = uni;
 		}
 	}
@@ -177,12 +192,12 @@ Matrix* matrix_flatten(Matrix* m, int axis) {
 		printf("Argument to matrix_flatten must be 0 or 1");
 		exit(EXIT_FAILURE);
 	}
-	for (int i = 0; i < m->rows; i++) {
-		for (int j = 0; j < m->cols; j++) {
-			if (axis == 0) mat->entries[i * m->cols + j][0] = m->entries[i][j];
-			else if (axis == 1) mat->entries[0][i * m->cols + j] = m->entries[i][j];
-		}
-	}
+//	for (int i = 0; i < m->rows; i++) {
+//		for (int j = 0; j < m->cols; j++) {
+//			if (axis == 0) mat->entries[i * m->cols + j][0] = m->entries[i][j];
+//			else if (axis == 1) mat->entries[0][i * m->cols + j] = m->entries[i][j];
+//		}
+//	}
 	for (int i = 0; i < m->rows; i++) {
         	for (int j = 0; j < m->cols; j++) {
             		int flat_index = i * m->cols + j;

@@ -5,47 +5,19 @@
 
 #define MAXCHAR 100
 
-void matrix_diff(Matrix* a, Matrix* b, char* label) {
-    if (a->rows != b->rows || a->cols != b->cols) {
-        printf("[DIFF] %s: shape mismatch (%d×%d) vs (%d×%d)\n", 
-               label, a->rows, a->cols, b->rows, b->cols);
-        return;
-    }
-
-    double max_diff = 0.0;
-    int idx_max = -1;
-
-    for (int i = 0; i < a->rows * a->cols; i++) {
-        double diff = fabs(a->entries[i] - b->entries[i]);
-        if (diff > max_diff) {
-            max_diff = diff;
-            idx_max = i;
-        }
-    }
-
-    if (max_diff < 1e-6) {
-        printf("[DIFF] %s: ✅ Matrices are effectively identical (max diff = %.10f)\n", 
-               label, max_diff);
-    } else {
-        printf("[DIFF] %s: ⚠️ Max diff = %.10f at flat index %d\n", 
-               label, max_diff, idx_max);
-        printf("        a[%d] = %.10f, b[%d] = %.10f\n", 
-               idx_max, a->entries[idx_max], idx_max, b->entries[idx_max]);
-    }
-}
-
 Matrix* matrix_create(int row, int col) {
-	//Matrix *matrix = malloc(sizeof(Matrix));
 	Matrix* matrix = (Matrix*) malloc(sizeof(Matrix));
 	matrix->rows = row;
 	matrix->cols = col;
-	// matrix->entries = malloc(row * sizeof(double*));
 	matrix->entries = (double**) malloc(row * sizeof(double*));
 	for (int i = 0; i < row; i++) {
-		// matrix->entries[i] = malloc(col * sizeof(double));
 		matrix->entries[i] = (double*) malloc(col * sizeof(double));
-
 	}
+//	matrix->entries = (double**) malloc(row * sizeof(double*));
+//	matrix->data = (double*) malloc(row * col * sizeof(double));
+//	for (int i = 0; i < row; i++)
+//    		matrix->entries[i] = &matrix->data[i * col];
+
 	return matrix;
 }
 
@@ -58,10 +30,15 @@ void matrix_fill(Matrix *m, int n) {
 }
 
 void matrix_free(Matrix *m) {
-	for (int i = 0; i < m->rows; i++) {
-		free(m->entries[i]);
-	}
-	free(m->entries);
+//	for (int i = 0; i < m->rows; i++) {
+//		free(m->entries[i]);
+//	}
+//	free(m->entries);
+        if (m->entries && m->entries[0]) {
+            free(m->entries[0]);
+        }
+        free(m->entries);
+
 	free(m);
 	m = NULL;
 }
