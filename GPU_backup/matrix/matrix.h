@@ -2,7 +2,7 @@
 
 typedef struct {
 	double** entries;
-//	double* data;
+	double* entriesf;
 	int rows;
 	int cols;
 } Matrix;

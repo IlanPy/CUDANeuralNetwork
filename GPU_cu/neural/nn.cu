@@ -11,7 +11,6 @@
 
 // 784, 300, 10
 NeuralNetwork* network_create(int input, int hidden, int output, double lr) {
-	// NeuralNetwork* net = malloc(sizeof(NeuralNetwork));
 	NeuralNetwork* net = (NeuralNetwork*) malloc(sizeof(NeuralNetwork));
 	net->input = input;
 	net->hidden = hidden;
@@ -28,24 +27,15 @@ NeuralNetwork* network_create(int input, int hidden, int output, double lr) {
 
 void network_train(NeuralNetwork* net, Matrix* input, Matrix* output) {
 	// Feed forward
-	//matrix_diff_self(net->hidden_weights, "Start");
-	//matrix_diff_self(input, "Start");
 	Matrix* hidden_inputs	= dot(net->hidden_weights, input);
-	//matrix_diff_self(hidden_inputs, "Dot");
 	Matrix* hidden_outputs = apply(sigmoid, hidden_inputs);
-	//matrix_diff_self(hidden_outputs, "apply");
 	Matrix* final_inputs = dot(net->output_weights, hidden_outputs);
-	//matrix_diff_self(final_inputs, "dot");
 	Matrix* final_outputs = apply(sigmoid, final_inputs);
-	//matrix_diff_self(final_outputs, "apply");
 
 	// Find errors
 	Matrix* output_errors = subtract(output, final_outputs);
-	//matrix_diff_self(output_errors, "subtract");
 	Matrix* transposed_mat = transpose(net->output_weights);
-	//matrix_diff_self(transposed_mat, "transpose");
 	Matrix* hidden_errors = dot(transposed_mat, output_errors);
-	//matrix_diff_self(hidden_errors, "dot");
 	matrix_free(transposed_mat);
 
 	// Backpropogate
@@ -63,17 +53,11 @@ void network_train(NeuralNetwork* net, Matrix* input, Matrix* output) {
 	//		 )
 	// )
 	Matrix* sigmoid_primed_mat = sigmoidPrime(final_outputs);
-	//matrix_diff_self(sigmoid_primed_mat, "sigmoidPrime");
 	Matrix* multiplied_mat = multiply(output_errors, sigmoid_primed_mat);
-	//matrix_diff_self(multiplied_mat, "multiply");
 	transposed_mat = transpose(hidden_outputs);
-	//matrix_diff_self(transposed_mat, "transpose");
 	Matrix* dot_mat = dot(multiplied_mat, transposed_mat);
-	//matrix_diff_self(dot_mat, "dot");
 	Matrix* scaled_mat = scale(net->learning_rate, dot_mat);
-	//matrix_diff_self(scaled_mat, "scale");
 	Matrix* added_mat = add(net->output_weights, scaled_mat);
-	//matrix_diff_self(added_mat, "add");
 
 	matrix_free(net->output_weights); // Free the old weights before replacing
 	net->output_weights = added_mat;
@@ -106,7 +90,6 @@ void network_train(NeuralNetwork* net, Matrix* input, Matrix* output) {
 	added_mat = add(net->hidden_weights, scaled_mat);
 	matrix_free(net->hidden_weights); // Free the old hidden_weights before replacem/nt
 	net->hidden_weights = added_mat; 
-//	matrix_diff_self(net->hidden_weights, "weights");
 
 	matrix_free(sigmoid_primed_mat);
 	matrix_free(multiplied_mat);
@@ -129,9 +112,10 @@ void network_train_batch_imgs(NeuralNetwork* net, Img** imgs, int batch_size) {
 		Img* cur_img = imgs[i];
 		Matrix* img_data = matrix_flatten(cur_img->img_data, 0); // 0 = flatten to column vector
 		Matrix* output = matrix_create(10, 1);
-//		output->entries[cur_img->label][0] = 1; // Setting the result
-		output->entriesf[cur_img->label * output->cols] = 1;
-//		matrix_diff_self(output, "outputs");
+		
+		double one = 1.0;
+        cudaMemcpy(&output->entriesf[cur_img->label * output->cols], &one, sizeof(double), cudaMemcpyHostToDevice);
+
 		network_train(net, img_data, output);
 		matrix_free(output);
 		matrix_free(img_data);
@@ -149,9 +133,6 @@ double network_predict_imgs(NeuralNetwork* net, Img** imgs, int n) {
 	int n_correct = 0;
 	for (int i = 0; i < n; i++) {
 		Matrix* prediction = network_predict_img(net, imgs[i]);
-		//matrix_diff_self(prediction, "predictions");
-//		matrix_diff_self(prediction, "pred");
-		//matrix_print(prediction);
 		if (matrix_argmax(prediction) == imgs[i]->label) {
 			n_correct++;
 		}
@@ -161,18 +142,11 @@ double network_predict_imgs(NeuralNetwork* net, Img** imgs, int n) {
 }
 
 Matrix* network_predict(NeuralNetwork* net, Matrix* input_data) {
-	//matrix_diff_self(net->hidden_weights, "Start");
-	//matrix_diff_self(input_data, "input_data");
 	Matrix* hidden_inputs	= dot(net->hidden_weights, input_data);
-	//matrix_diff_self(hidden_inputs, "dot");
 	Matrix* hidden_outputs = apply(sigmoid, hidden_inputs);
-	//matrix_diff_self(hidden_outputs, "apply");
 	Matrix* final_inputs = dot(net->output_weights, hidden_outputs);
-	//matrix_diff_self(final_inputs, "dot");
 	Matrix* final_outputs = apply(sigmoid, final_inputs);
-	//matrix_diff_self(final_outputs, "apply");
 	Matrix* result = softmax(final_outputs);
-	//matrix_diff_self(result, "softmax");
 
 	matrix_free(hidden_inputs);
 	matrix_free(hidden_outputs);
@@ -198,7 +172,6 @@ void network_save(NeuralNetwork* net, char* file_string) {
 }
 
 NeuralNetwork* network_load(char* file_string) {
-	// NeuralNetwork* net = malloc(sizeof(NeuralNetwork));
 	NeuralNetwork* net = (NeuralNetwork*) malloc(sizeof(NeuralNetwork));
 	char entry[MAXCHAR];
 	chdir(file_string);

@@ -7,9 +7,9 @@
 
 Img** csv_to_imgs(char* file_string, int number_of_imgs) {
 	FILE *fp;
-	//Img** imgs = malloc(number_of_imgs * sizeof(Img*));
 	Img** imgs = (Img**) malloc(number_of_imgs * sizeof(Img*));
 	char row[MAXCHAR];
+	int flat_index;
 	fp = fopen(file_string, "r");
 
 	// Read the first line 
@@ -27,8 +27,9 @@ Img** csv_to_imgs(char* file_string, int number_of_imgs) {
 			if (j == 0) {
 				imgs[i]->label = atoi(token);
 			} else {
-//				imgs[i]->img_data->entries[(j-1) / 28][(j-1) % 28] = atoi(token) / 256.0;
-				imgs[i]->img_data->entriesf[(j-1)/28 * 28 + ((j-1) % 28)] = atoi(token) / 256.0;
+				flat_index = j-1;  // same as: (j-1)/28 * 28 + ((j-1) % 28);
+				double val = atoi(token) / 256.0;
+				cudaMemcpy(&imgs[i]->img_data->entriesf[flat_index], &val, sizeof(double), cudaMemcpyHostToDevice);
 			}
 			token = strtok(NULL, ",");
 			j++;
