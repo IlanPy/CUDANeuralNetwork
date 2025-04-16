@@ -10,10 +10,10 @@ Matrix* matrix_create(int row, int col) {
 	matrix->rows = row;
 	matrix->cols = col;
 	
-	matrix->entries = (double**) malloc(row * sizeof(double*));
-	for (int i = 0; i < row; i++) {
-	 	matrix->entries[i] = (double*) malloc(col * sizeof(double));
-	}
+//	matrix->entries = (double**) malloc(row * sizeof(double*));
+//	for (int i = 0; i < row; i++) {
+//	 	matrix->entries[i] = (double*) malloc(col * sizeof(double));
+//	}
 	
 	matrix->entriesf = (double*) malloc(row * col * sizeof(double));
 	
@@ -29,10 +29,10 @@ void matrix_fill(Matrix *m, int n) {
 }
 
 void matrix_free(Matrix *m) {
-	for (int i = 0; i < m->rows; i++) {
-		free(m->entries[i]);
-	}
-	free(m->entries);
+//	for (int i = 0; i < m->rows; i++) {
+//		free(m->entries[i]);
+//	}
+//	free(m->entries);
 	free(m->entriesf);
 	free(m);
 	m = NULL;

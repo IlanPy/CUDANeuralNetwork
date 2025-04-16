@@ -35,8 +35,7 @@ Matrix* matrix_create(int row, int col) {
 	}
 
 	// Allocate entriesf on GPU
-	cudaMalloc(&(matrix->entriesf), row * col * sizeof(double));
-//	cudaMallocManaged(&(matrix->entriesf), row * col * sizeof(double));	
+	cudaMallocManaged(&(matrix->entriesf), row * col * sizeof(double));	
 	return matrix;
 }
 
@@ -62,17 +61,14 @@ void matrix_free(Matrix *m) {
 
 void matrix_print(Matrix* m) {
     int size = m->rows * m->cols;
-    double* temp = (double*) malloc(size * sizeof(double));
-    cudaMemcpy(temp, m->entriesf, size * sizeof(double), cudaMemcpyDeviceToHost);
 
     printf("Rows: %d Columns: %d\n", m->rows, m->cols);
     for (int i = 0; i < m->rows; i++) {
         for (int j = 0; j < m->cols; j++) {
-            printf("%1.3f ", temp[i * m->cols + j]);
+            printf("%1.3f ", m->entriesf[i * m->cols + j]);
         }
         printf("\n");
     }
-    free(temp);
 }
 
 Matrix* matrix_copy(Matrix* m) {
@@ -86,42 +82,35 @@ Matrix* matrix_copy(Matrix* m) {
 }
 
 void matrix_save(Matrix* m, char* file_string) {
-	FILE* file = fopen(file_string, "w");
-	fprintf(file, "%d\n", m->rows);
-	fprintf(file, "%d\n", m->cols);
-
-	int size = m->rows * m->cols;
-	double* host_data = (double*) malloc(size * sizeof(double));
-	matrix_copy_device_to_host(m, host_data);
-
-	for (int i = 0; i < size; i++) {
-		fprintf(file, "%.6f\n", host_data[i]);
-	}
-	free(host_data);
-	fclose(file);
-	printf("Successfully saved matrix to %s\n", file_string);
+        FILE* file = fopen(file_string, "w");
+        fprintf(file, "%d\n", m->rows);
+        fprintf(file, "%d\n", m->cols);
+        for (int i = 0; i < m->rows; i++) {
+                for (int j = 0; j < m->cols; j++) {
+                        fprintf(file, "%.6f\n", m->entriesf[i * m->cols + j]);
+                }
+        }
+        printf("Successfully saved matrix to %s\n", file_string);
+        fclose(file);
 }
 
 Matrix* matrix_load(char* file_string) {
-	FILE* file = fopen(file_string, "r");
-	char entry[MAXCHAR];
-	fgets(entry, MAXCHAR, file);
-	int rows = atoi(entry);
-	fgets(entry, MAXCHAR, file);
-	int cols = atoi(entry);
-
-	Matrix* m = matrix_create(rows, cols);
-	int size = rows * cols;
-	double* host_data = (double*) malloc(size * sizeof(double));
-	for (int i = 0; i < size; i++) {
-		fgets(entry, MAXCHAR, file);
-		host_data[i] = strtod(entry, NULL);
-	}
-	fclose(file);
-	matrix_copy_host_to_device(m, host_data);
-	free(host_data);
-	printf("Successfully loaded matrix from %s\n", file_string);
-	return m;
+        FILE* file = fopen(file_string, "r");
+        char entry[MAXCHAR];
+        fgets(entry, MAXCHAR, file);
+        int rows = atoi(entry);
+        fgets(entry, MAXCHAR, file);
+        int cols = atoi(entry);
+        Matrix* m = matrix_create(rows, cols);
+        for (int i = 0; i < m->rows; i++) {
+                for (int j = 0; j < m->cols; j++) {
+                        fgets(entry, MAXCHAR, file);
+                        m->entriesf[i * m->cols + j] = strtod(entry, NULL);
+                }
+        }
+        printf("Sucessfully loaded matrix from %s\n", file_string);
+        fclose(file);
+        return m;
 }
 
 double uniform_distribution(double low, double high) {
@@ -132,37 +121,30 @@ double uniform_distribution(double low, double high) {
 }
 
 void matrix_randomize(Matrix* m, int n) {
-    // Pulling from a random distribution of 
-	// Min: -1 / sqrt(n)
-	// Max: 1 / sqrt(n)
-    double min = -1.0 / sqrt(n);
-    double max =  1.0 / sqrt(n);
-    int total = m->rows * m->cols;
-
-    double* host_data = (double*) malloc(total * sizeof(double));
-    for (int i = 0; i < total; i++) {
-        host_data[i] = uniform_distribution(min, max);
-    }
-
-    matrix_copy_host_to_device(m, host_data);
-    free(host_data);
+        // Pulling from a random distribution of
+        // Min: -1 / sqrt(n)
+        // Max: 1 / sqrt(n)
+        double min = -1.0 / sqrt(n);
+        double max = 1.0 / sqrt(n);
+        for (int i = 0; i < m->rows; i++) {
+                for (int j = 0; j < m->cols; j++) {
+                        double uni = uniform_distribution(min, max);
+                        m->entriesf[i * m->cols + j] = uni;
+                }
+        }
 }
 
 int matrix_argmax(Matrix* m) {
-	int size = m->rows * m->cols;
-	double* host_copy = (double*) malloc(size * sizeof(double));
-	matrix_copy_device_to_host(m, host_copy);
-
-	double max_score = host_copy[0];
-	int max_idx = 0;
-	for (int i = 1; i < m->rows; i++) {
-		if (host_copy[i] > max_score) {
-			max_score = host_copy[i];
-			max_idx = i;
-		}
-	}
-	free(host_copy);
-	return max_idx;
+        // Expects a Mx1 matrix
+        double max_score = 0;
+        int max_idx = 0;
+        for (int i = 0; i < m->rows; i++) {
+                if (m->entriesf[i] > max_score) {
+                        max_score = m->entriesf[i];
+                        max_idx = i;
+                }
+        }
+        return max_idx;
 }
 
 Matrix* matrix_flatten(Matrix* m, int axis) {
