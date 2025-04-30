@@ -5,82 +5,112 @@
 
 #define MAXCHAR 100
 
+__global__ void kernel_fill(double* data, int value, int size) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < size) data[idx] = value;
+}
+
+__global__ void kernel_copy(const double* src, double* dst, int size) {
+	int idx = blockIdx.x * blockDim.x + threadIdx.x;
+	if (idx < size) {
+		dst[idx] = src[idx];
+	}
+}
+
+__global__ void kernel_flatten(const double* src, double* dst, int size) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < size) {
+        dst[idx] = src[idx];
+    }
+}
+
 Matrix* matrix_create(int row, int col) {
-	//Matrix *matrix = malloc(sizeof(Matrix));
 	Matrix* matrix = (Matrix*) malloc(sizeof(Matrix));
 	matrix->rows = row;
 	matrix->cols = col;
-	// matrix->entries = malloc(row * sizeof(double*));
-	matrix->entries = (double*) malloc(row * col * sizeof(double));
+
+	matrix->entries = (double**) malloc(row * sizeof(double*));
+	for (int i = 0; i < row; i++) {
+	 	matrix->entries[i] = (double*) malloc(col * sizeof(double));
+	}
+
+	// Allocate entriesf on GPU
+	cudaMallocManaged(&(matrix->entriesf), row * col * sizeof(double));	
 	return matrix;
 }
 
 void matrix_fill(Matrix *m, int n) {
-	for (int i = 0; i < m->rows; i++) {
-		for (int j = 0; j < m->cols; j++) {
-			// m->entries[i][j] = n;
-			m->entries[i * m->cols + j] = n;
-		}
-	}
+    int size = m->rows * m->cols;
+    int threads = 256;
+    int blocks = (size + threads - 1) / threads;
+    kernel_fill<<<blocks, threads>>>(m->entriesf, n, size);
+    cudaDeviceSynchronize();
 }
 
 void matrix_free(Matrix *m) {
+	for (int i = 0; i < m->rows; i++) {
+		free(m->entries[i]);
+	}
 	free(m->entries);
+
+	// Free GPU memory
+	cudaFree(m->entriesf);
+
 	free(m);
-	m = NULL;
 }
 
 void matrix_print(Matrix* m) {
-	printf("Rows: %d Columns: %d\n", m->rows, m->cols);
-	for (int i = 0; i < m->rows; i++) {
-		for (int j = 0; j < m->cols; j++) {
-			printf("%1.3f ", m->entries[i * m->cols + j]);
-		}
-		printf("\n");
-	}
+    int size = m->rows * m->cols;
+
+    printf("Rows: %d Columns: %d\n", m->rows, m->cols);
+    for (int i = 0; i < m->rows; i++) {
+        for (int j = 0; j < m->cols; j++) {
+            printf("%1.3f ", m->entriesf[i * m->cols + j]);
+        }
+        printf("\n");
+    }
 }
 
 Matrix* matrix_copy(Matrix* m) {
 	Matrix* mat = matrix_create(m->rows, m->cols);
-	for (int i = 0; i < m->rows; i++) {
-		for (int j = 0; j < m->cols; j++) {
-			// mat->entries[i][j] = m->entries[i][j];
-			mat->entries[i * mat->cols + j] = m->entries[i * m->cols + j];
-		}
-	}
+	int size = m->rows * m->cols;
+	int threads = 256;
+	int blocks = (size + threads - 1) / threads;
+	kernel_copy<<<blocks, threads>>>(m->entriesf, mat->entriesf, size);
+	cudaDeviceSynchronize();
 	return mat;
 }
 
 void matrix_save(Matrix* m, char* file_string) {
-	FILE* file = fopen(file_string, "w");
-	fprintf(file, "%d\n", m->rows);
-	fprintf(file, "%d\n", m->cols);
-	for (int i = 0; i < m->rows; i++) {
-		for (int j = 0; j < m->cols; j++) {
-			fprintf(file, "%.6f\n", m->entries[i * m->cols + j]);
-		}
-	}
-	printf("Successfully saved matrix to %s\n", file_string);
-	fclose(file);
+        FILE* file = fopen(file_string, "w");
+        fprintf(file, "%d\n", m->rows);
+        fprintf(file, "%d\n", m->cols);
+        for (int i = 0; i < m->rows; i++) {
+                for (int j = 0; j < m->cols; j++) {
+                        fprintf(file, "%.6f\n", m->entriesf[i * m->cols + j]);
+                }
+        }
+        printf("Successfully saved matrix to %s\n", file_string);
+        fclose(file);
 }
 
 Matrix* matrix_load(char* file_string) {
-	FILE* file = fopen(file_string, "r");
-	char entry[MAXCHAR]; 
-	fgets(entry, MAXCHAR, file);
-	int rows = atoi(entry);
-	fgets(entry, MAXCHAR, file);
-	int cols = atoi(entry);
-	Matrix* m = matrix_create(rows, cols);
-	for (int i = 0; i < m->rows; i++) {
-		for (int j = 0; j < m->cols; j++) {
-			fgets(entry, MAXCHAR, file);
-			m->entries[i * m->cols + j] = strtod(entry, NULL);
-		}
-	}
-	printf("Sucessfully loaded matrix from %s\n", file_string);
-	fclose(file);
-	return m;
+        FILE* file = fopen(file_string, "r");
+        char entry[MAXCHAR];
+        fgets(entry, MAXCHAR, file);
+        int rows = atoi(entry);
+        fgets(entry, MAXCHAR, file);
+        int cols = atoi(entry);
+        Matrix* m = matrix_create(rows, cols);
+        for (int i = 0; i < m->rows; i++) {
+                for (int j = 0; j < m->cols; j++) {
+                        fgets(entry, MAXCHAR, file);
+                        m->entriesf[i * m->cols + j] = strtod(entry, NULL);
+                }
+        }
+        printf("Sucessfully loaded matrix from %s\n", file_string);
+        fclose(file);
+        return m;
 }
 
 double uniform_distribution(double low, double high) {
@@ -91,112 +121,59 @@ double uniform_distribution(double low, double high) {
 }
 
 void matrix_randomize(Matrix* m, int n) {
-	// Pulling from a random distribution of 
-	// Min: -1 / sqrt(n)
-	// Max: 1 / sqrt(n)
-	double min = -1.0 / sqrt(n);
-	double max = 1.0 / sqrt(n);
-	for (int i = 0; i < m->rows; i++) {
-		for (int j = 0; j < m->cols; j++) {
-			m->entries[i * m->cols + j] = uniform_distribution(min, max);
-		}
-	}
-}
-/*
-int matrix_argmax(Matrix* m) {
-	// Expects a Mx1 matrix
-	double max_score = 0;
-	int max_idx = 0;
-	for (int i = 0; i < m->rows; i++) {
-    		double val = m->entries[i * m->cols + 0];
-    		if (val > max_score) {
-        		max_score = val;
-        		max_idx = i;
-    		}
-	}
-	return max_idx;
-}
-*/
-int matrix_argmax(Matrix* m) {
-    double max_score = m->entries[0];
-    int max_idx = 0;
-    for (int i = 1; i < m->rows * m->cols; i++) {
-        if (m->entries[i] > max_score) {
-            max_score = m->entries[i];
-            max_idx = i;
+        // Pulling from a random distribution of
+        // Min: -1 / sqrt(n)
+        // Max: 1 / sqrt(n)
+        double min = -1.0 / sqrt(n);
+        double max = 1.0 / sqrt(n);
+        for (int i = 0; i < m->rows; i++) {
+                for (int j = 0; j < m->cols; j++) {
+                        double uni = uniform_distribution(min, max);
+                        m->entriesf[i * m->cols + j] = uni;
+                }
         }
-    }
-    return max_idx;
 }
 
-/*
-Matrix* matrix_flatten(Matrix* m, int axis) {
-	// Axis = 0 -> Column Vector, Axis = 1 -> Row Vector
-	Matrix* mat;
-	if (axis == 0) {
-		mat = matrix_create(m->rows * m->cols, 1);
-	} else if (axis == 1) {
-		mat = matrix_create(1, m->rows * m->cols);
-	} else {
-		printf("Argument to matrix_flatten must be 0 or 1");
-		exit(EXIT_FAILURE);
-	}
-	for (int i = 0; i < m->rows; i++) {
-		for (int j = 0; j < m->cols; j++) {
-			//if (axis == 0) mat->entries[i * m->cols + j][0] = m->entries[i][j];
-			if (axis == 0) mat->entries[i * m->cols + j] = m->entries[i * m->cols + j];
-			// else if (axis == 1) mat->entries[0][i * m->cols + j] = m->entries[i][j];
-			else if (axis == 0) mat->entries[0 * m->cols + i * m->cols + j] = m->entries[i * m->cols + j];
-		}
-	}
-	return mat;
+int matrix_argmax(Matrix* m) {
+        // Expects a Mx1 matrix
+        double max_score = 0;
+        int max_idx = 0;
+        for (int i = 0; i < m->rows; i++) {
+                if (m->entriesf[i] > max_score) {
+                        max_score = m->entriesf[i];
+                        max_idx = i;
+                }
+        }
+        return max_idx;
 }
-*/
-/*
+
 Matrix* matrix_flatten(Matrix* m, int axis) {
-    // Axis = 0 -> Column Vector (n x 1)
-    // Axis = 1 -> Row Vector (1 x n)
-    int total = m->rows * m->cols;
     Matrix* mat;
+    int size = m->rows * m->cols;
 
     if (axis == 0) {
-        mat = matrix_create(total, 1);
+        mat = matrix_create(size, 1);
     } else if (axis == 1) {
-        mat = matrix_create(1, total);
+        mat = matrix_create(1, size);
     } else {
-        printf("Argument to matrix_flatten must be 0 or 1\n");
+        printf("Argument to matrix_flatten must be 0 or 1");
         exit(EXIT_FAILURE);
     }
 
-    for (int i = 0; i < total; i++) {
-        mat->entries[i] = m->entries[i]; // Copy entry-by-entry
-    }
-
-    return mat;
-}
-*/
-Matrix* matrix_flatten(Matrix* m, int axis) {
-    // Axis = 0 -> Column Vector (n x 1)
-    // Axis = 1 -> Row Vector (1 x n)
-    int total = m->rows * m->cols;
-    Matrix* mat;
-
-    if (axis == 0) {
-        mat = matrix_create(total, 1);
-    } else if (axis == 1) {
-        mat = matrix_create(1, total);
-    } else {
-        printf("Argument to matrix_flatten must be 0 or 1\n");
-        exit(EXIT_FAILURE);
-    }
-
-    for (int i = 0; i < m->rows; i++) {
-        for (int j = 0; j < m->cols; j++) {
-            int flat_index = i * m->cols + j;
-            mat->entries[flat_index] = m->entries[i * m->cols + j]; // Or access through get(m, i, j)
-        }
-    }
+    int threads = 256;
+    int blocks = (size + threads - 1) / threads;
+    kernel_flatten<<<blocks, threads>>>(m->entriesf, mat->entriesf, size);
+    cudaDeviceSynchronize();
 
     return mat;
 }
 
+void matrix_copy_device_to_host(Matrix* m, double* host_data) {
+    int size = m->rows * m->cols * sizeof(double);
+    cudaMemcpy(host_data, m->entriesf, size, cudaMemcpyDeviceToHost);
+}
+
+void matrix_copy_host_to_device(Matrix* m, double* host_data) {
+    int size = m->rows * m->cols * sizeof(double);
+    cudaMemcpy(m->entriesf, host_data, size, cudaMemcpyHostToDevice);
+}

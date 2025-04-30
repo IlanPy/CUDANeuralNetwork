@@ -11,7 +11,6 @@
 
 // 784, 300, 10
 NeuralNetwork* network_create(int input, int hidden, int output, double lr) {
-	// NeuralNetwork* net = malloc(sizeof(NeuralNetwork));
 	NeuralNetwork* net = (NeuralNetwork*) malloc(sizeof(NeuralNetwork));
 	net->input = input;
 	net->hidden = hidden;
@@ -89,7 +88,7 @@ void network_train(NeuralNetwork* net, Matrix* input, Matrix* output) {
 	dot_mat = dot(multiplied_mat, transposed_mat);
 	scaled_mat = scale(net->learning_rate, dot_mat);
 	added_mat = add(net->hidden_weights, scaled_mat);
-	matrix_free(net->hidden_weights); // Free the old hidden_weights before replacement
+	matrix_free(net->hidden_weights); // Free the old hidden_weights before replacem/nt
 	net->hidden_weights = added_mat; 
 
 	matrix_free(sigmoid_primed_mat);
@@ -108,17 +107,16 @@ void network_train(NeuralNetwork* net, Matrix* input, Matrix* output) {
 }
 
 void network_train_batch_imgs(NeuralNetwork* net, Img** imgs, int batch_size) {
-	for (int i = 0; i < batch_size; i++) {
-		if (i % 100 == 0) printf("Img No. %d\n", i);
-		Img* cur_img = imgs[i];
-		Matrix* img_data = matrix_flatten(cur_img->img_data, 0); // 0 = flatten to column vector
-		Matrix* output = matrix_create(10, 1);
-		// output->entries[cur_img->label][0] = 1; // Setting the result
-		output->entries[cur_img->label * output->cols] = 1;
-		network_train(net, img_data, output);
-		matrix_free(output);
-		matrix_free(img_data);
-	}
+        for (int i = 0; i < batch_size; i++) {
+                if (i % 100 == 0) printf("Img No. %d\n", i);
+                Img* cur_img = imgs[i];
+                Matrix* img_data = matrix_flatten(cur_img->img_data, 0); // 0 = flatten to column vector
+                Matrix* output = matrix_create(10, 1);
+                output->entriesf[cur_img->label * output->cols] = 1; // Setting the result
+                network_train(net, img_data, output);
+                matrix_free(output);
+                matrix_free(img_data);
+        }
 }
 
 Matrix* network_predict_img(NeuralNetwork* net, Img* img) {
@@ -171,7 +169,6 @@ void network_save(NeuralNetwork* net, char* file_string) {
 }
 
 NeuralNetwork* network_load(char* file_string) {
-	// NeuralNetwork* net = malloc(sizeof(NeuralNetwork));
 	NeuralNetwork* net = (NeuralNetwork*) malloc(sizeof(NeuralNetwork));
 	char entry[MAXCHAR];
 	chdir(file_string);

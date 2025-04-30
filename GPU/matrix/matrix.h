@@ -1,7 +1,8 @@
 #pragma once
 
 typedef struct {
-	double* entries;
+	double** entries;
+	double* entriesf;
 	int rows;
 	int cols;
 } Matrix;
@@ -16,3 +17,5 @@ Matrix* matrix_load(char* file_string);
 void matrix_randomize(Matrix* m, int n);
 int matrix_argmax(Matrix* m);
 Matrix* matrix_flatten(Matrix* m, int axis);
+void matrix_copy_device_to_host(Matrix* m, double* host_data);
+void matrix_copy_host_to_device(Matrix* m, double* host_data);
