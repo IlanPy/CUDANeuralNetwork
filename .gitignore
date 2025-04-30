@@ -1,2 +1,4 @@
 data/mnist_train.csv
 data/mnist_test.csv
+data/octmnist_train_64.csv
+data/octmnist_test_64.csv
